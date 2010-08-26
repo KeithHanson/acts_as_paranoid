@@ -39,7 +39,7 @@ end
 class NonParanoidAndroid < ActiveRecord::Base
 end
 
-class ParanoidTest < Test::Unit::TestCase
+class ParanoidTest < ActiveSupport::TestCase
   fixtures :widgets, :categories, :categories_widgets, :tags, :taggings
   
   def test_should_recognize_with_deleted_option
