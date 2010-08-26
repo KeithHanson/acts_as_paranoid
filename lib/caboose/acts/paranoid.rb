@@ -77,62 +77,16 @@ module Caboose #:nodoc:
         end
 
         module ClassMethods
-          def find_with_deleted(*args)
-            options = args.extract_options!
-            validate_find_options(options)
-            set_readonly_option!(options)
-            options[:with_deleted] = true # yuck!
-
-            case args.first
-              when :first then find_initial(options)
-              when :all   then find_every(options)
-              else             find_from_ids(args, options)
-            end
-          end
-
-          def find_only_deleted(*args)
-            options = args.extract_options!
-            validate_find_options(options)
-            set_readonly_option!(options)
-            options[:only_deleted] = true # yuck!
-
-            case args.first
-              when :first then find_initial(options)
-              when :all   then find_every(options)
-              else             find_from_ids(args, options)
-            end
-          end
-
           def exists?(*args)
-            with_deleted_scope { exists_with_deleted?(*args) }
-          end
-
-          def exists_only_deleted?(*args)
-            with_only_deleted_scope { exists_with_deleted?(*args) }
-          end
-
-          def count_with_deleted(*args)
-            calculate_with_deleted(:count, *construct_count_options_from_args(*args))
-          end
-
-          def count_only_deleted(*args)
-            with_only_deleted_scope { count_with_deleted(*args) }
+            with_deleted_scope { super }
           end
 
           def count(*args)
-            with, only = extract_deleted_options(args.last) if args.last.is_a?(Hash)
-            
-            with ? count_with_deleted(*args) :
-              only ? count_only_deleted(*args) :
-                with_deleted_scope { count_with_deleted(*args) }
+            with_deleted_scope { super }
           end
 
           def calculate(*args)
-            with, only = extract_deleted_options(args.last) if args.last.is_a?(Hash)
-            
-            with ? calculate_with_deleted(*args) :
-              only ? calculate_only_deleted(*args) :
-                with_deleted_scope { calculate_with_deleted(*args) }
+            with_deleted_scope { super }
           end
 
           def delete_all(conditions = nil)
@@ -141,29 +95,17 @@ module Caboose #:nodoc:
 
           protected
             def current_time
-              default_timezone == :utc ? Time.now.utc : Time.now
+              default_timezone == :utc ? Time.now.to_date.utc : Time.now.to_date
             end
 
             def with_deleted_scope(&block)
               with_scope({:find => { :conditions => ["#{table_name}.#{deleted_attribute} IS NULL OR #{table_name}.#{deleted_attribute} > ?", current_time] } }, :merge, &block)
             end
 
-            def with_only_deleted_scope(&block)
-              with_scope({:find => { :conditions => ["#{table_name}.#{deleted_attribute} IS NOT NULL AND #{table_name}.#{deleted_attribute} <= ?", current_time] } }, :merge, &block)
-            end
-
           private
             # all find calls lead here
             def find_every(options)
-              with, only = extract_deleted_options(options)
-
-              with ? find_every_with_deleted(options) :
-                only ? with_only_deleted_scope { find_every_with_deleted(options) } :
-                  with_deleted_scope { find_every_with_deleted(options) }
-            end
-
-            def extract_deleted_options(options)
-              return options.delete(:with_deleted), options.delete(:only_deleted)
+              with_deleted_scope { super }
             end
         end
 
@@ -183,24 +125,6 @@ module Caboose #:nodoc:
 
         def destroy!
           transaction { destroy_with_callbacks! }
-        end
-
-        def deleted?
-          !!read_attribute(:deleted_at)
-        end
-
-        def recover!
-          self.deleted_at = nil
-          save!
-        end
-        
-        def recover_with_associations!(*associations)
-          self.recover!
-          associations.to_a.each do |assoc|
-            self.send(assoc).find_with_deleted(:all).each do |a|
-              a.recover! if a.class.paranoid?
-            end
-          end
         end
       end
     end

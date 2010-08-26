@@ -3,7 +3,7 @@ module Caboose # :nodoc:
     class BelongsToWithDeletedAssociation < ActiveRecord::Associations::BelongsToAssociation
       private
         def find_target
-          @reflection.klass.find_with_deleted(
+          @reflection.klass.find(
             @owner[@reflection.primary_key_name], 
             :conditions => conditions,
             :include    => @reflection.options[:include]
