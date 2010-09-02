@@ -53,7 +53,7 @@ module Caboose #:nodoc:
 
       module ClassMethods
         def dynamic_scope(options = {})
-          unless paranoid? # don't let AR call this twice
+          unless dynamic_scoped? # don't let AR call this twice
             cattr_accessor :deleted_attribute
             self.deleted_attribute = options[:with] || :deleted_at
             alias_method :destroy_without_callbacks!, :destroy_without_callbacks
@@ -61,7 +61,7 @@ module Caboose #:nodoc:
           include InstanceMethods
         end
 
-        def paranoid?
+        def dynamic_scoped?
           self.included_modules.include?(InstanceMethods)
         end
       end
@@ -93,8 +93,12 @@ module Caboose #:nodoc:
               default_timezone == :utc ? Time.now.to_date.utc : Time.now.to_date
             end
 
+            def dynascope
+              { :conditions => ["#{table_name}.#{deleted_attribute} IS NULL"] }
+            end
+            
             def with_dynascope(&block)
-              with_scope({:find => { :conditions => ["#{table_name}.#{deleted_attribute} IS NULL"] } }, :merge, &block)
+              with_scope({:find => dynascope }, :merge, &block)
             end
 
           private

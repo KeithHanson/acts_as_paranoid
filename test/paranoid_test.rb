@@ -154,8 +154,8 @@ class ParanoidTest < ActiveSupport::TestCase
   end
 
   def test_should_give_paranoid_status
-    assert Widget.paranoid?
-    assert !NonParanoidAndroid.paranoid?
+    assert Widget.dynamic_scoped?
+    assert !NonParanoidAndroid.dynamic_scoped?
   end
 
   def test_dynamic_finders
