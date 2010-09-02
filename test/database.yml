@@ -1,9 +1,6 @@
-sqlite:
-  :adapter: sqlite
-  :database: dynamic_scope_plugin.sqlite.db
 sqlite3:
   :adapter: sqlite3
-  :database: dynamic_scope_plugin.sqlite3.db
+  :database: ":memory:"
 postgresql:
   :adapter: postgresql
   :username: postgres
