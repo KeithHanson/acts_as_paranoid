@@ -159,9 +159,3 @@ class ParanoidTest < ActiveSupport::TestCase
     assert_nil Widget.find_by_id(2)
   end
 end
-
-class Array
-  def ids
-    collect &:id
-  end
-end

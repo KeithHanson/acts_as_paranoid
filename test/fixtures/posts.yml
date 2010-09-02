@@ -1,2 +1,17 @@
-one:
+private:
+  id: 1
   text: Post 1
+  user_id: 1
+  privacy: private
+
+friends:
+  id: 2
+  text: Post 2 for friends
+  user_id: 1
+  privacy: friends
+   
+public:
+  id: 3
+  text: Post 2 for the public
+  user_id: 1
+  privacy: public

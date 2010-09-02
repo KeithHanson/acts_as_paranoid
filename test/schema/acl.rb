@@ -11,5 +11,7 @@ ActiveRecord::Schema.define(:version => 1) do
 
   create_table :posts, :force => true do |t|
     t.column :text, :string
+    t.column :user_id, :integer
+    t.column :privacy, :string
   end
 end
