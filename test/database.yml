@@ -1,18 +1,18 @@
 sqlite:
   :adapter: sqlite
-  :database: acts_as_paranoid_plugin.sqlite.db
+  :database: dynamic_scope_plugin.sqlite.db
 sqlite3:
   :adapter: sqlite3
-  :database: acts_as_paranoid_plugin.sqlite3.db
+  :database: dynamic_scope_plugin.sqlite3.db
 postgresql:
   :adapter: postgresql
   :username: postgres
   :password: postgres
-  :database: acts_as_paranoid_plugin_test
+  :database: dynamic_scope_plugin_test
   :min_messages: ERROR
 mysql:
   :adapter: mysql
   :host: localhost
   :username: rails
   :password:
-  :database: acts_as_paranoid_plugin_test
+  :database: dynamic_scope_plugin_test

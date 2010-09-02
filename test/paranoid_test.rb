@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), 'test_helper')
 
 class Widget < ActiveRecord::Base
-  acts_as_paranoid
+  dynamic_scope
   has_many :categories, :dependent => :destroy
   has_and_belongs_to_many :habtm_categories, :class_name => 'Category'
   has_one :category
@@ -14,7 +14,7 @@ end
 class Category < ActiveRecord::Base
   belongs_to :widget
   belongs_to :any_widget, :class_name => 'Widget', :foreign_key => 'widget_id'
-  acts_as_paranoid
+  dynamic_scope
 
   def self.search(name, options = {})
     find :all, options.merge(:conditions => ['LOWER(title) LIKE ?', "%#{name.to_s.downcase}%"])
@@ -29,7 +29,7 @@ end
 class Tagging < ActiveRecord::Base
   belongs_to :tag
   belongs_to :widget
-  acts_as_paranoid
+  dynamic_scope
 end
 
 class NonParanoidAndroid < ActiveRecord::Base
@@ -127,7 +127,7 @@ class ParanoidTest < ActiveSupport::TestCase
   end
   
   def test_should_ignore_multiple_includes
-    Widget.class_eval { acts_as_paranoid }
+    Widget.class_eval { dynamic_scope }
     assert Widget.find(1)
   end
 

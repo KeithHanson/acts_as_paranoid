@@ -4,7 +4,7 @@ module Caboose #:nodoc:
     # This assumes the table has a deleted_at date/time field.  Most normal model operations will work, but there will be some oddities.
     #
     #   class Widget < ActiveRecord::Base
-    #     acts_as_paranoid
+    #     dynamic_scope
     #   end
     #
     #   Widget.find(:all)
@@ -52,7 +52,7 @@ module Caboose #:nodoc:
       end
 
       module ClassMethods
-        def acts_as_paranoid(options = {})
+        def dynamic_scope(options = {})
           unless paranoid? # don't let AR call this twice
             cattr_accessor :deleted_attribute
             self.deleted_attribute = options[:with] || :deleted_at
