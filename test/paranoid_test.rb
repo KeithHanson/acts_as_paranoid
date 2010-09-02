@@ -83,13 +83,13 @@ class ParanoidTest < ActiveSupport::TestCase
   
   def test_should_delete_all2
     assert_equal 1, Category.count
-    Category.delete_all!
+    Category.destroy_all
     assert_equal 0, Category.count
   end
   
   def test_should_delete_all_with_conditions2
     assert_equal 1, Category.count
-    Category.delete_all!("id < 3")
+    Category.destroy_all("id < 3")
     assert_equal 0, Category.count
   end
   

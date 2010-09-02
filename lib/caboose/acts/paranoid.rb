@@ -57,11 +57,6 @@ module Caboose #:nodoc:
             cattr_accessor :deleted_attribute
             self.deleted_attribute = options[:with] || :deleted_at
             alias_method :destroy_without_callbacks!, :destroy_without_callbacks
-            class << self
-              alias_method :find_every_with_deleted,    :find_every
-              alias_method :calculate_with_deleted,     :calculate
-              alias_method :delete_all!,                :delete_all
-            end
           end
           include InstanceMethods
         end
@@ -78,15 +73,15 @@ module Caboose #:nodoc:
 
         module ClassMethods
           def exists?(*args)
-            with_deleted_scope { super }
+            with_dynascope { super }
           end
 
           def count(*args)
-            with_deleted_scope { super }
+            with_dynascope { super }
           end
 
           def calculate(*args)
-            with_deleted_scope { super }
+            with_dynascope { super }
           end
 
           def delete_all(conditions = nil)
@@ -98,14 +93,14 @@ module Caboose #:nodoc:
               default_timezone == :utc ? Time.now.to_date.utc : Time.now.to_date
             end
 
-            def with_deleted_scope(&block)
+            def with_dynascope(&block)
               with_scope({:find => { :conditions => ["#{table_name}.#{deleted_attribute} IS NULL"] } }, :merge, &block)
             end
 
           private
             # all find calls lead here
             def find_every(options)
-              with_deleted_scope { super }
+              with_dynascope { super }
             end
         end
 
