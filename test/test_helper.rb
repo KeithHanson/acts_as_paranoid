@@ -13,7 +13,7 @@ require "action_controller"
 require "test_help"
 
 $LOAD_PATH << File.join(File.dirname(__FILE__), '..', 'lib')
-Dir["#{$LOAD_PATH.last}/**/*.rb"].each do |path| 
+Dir["#{$LOAD_PATH.last}/**/*.rb"].sort.each do |path| 
   require path[$LOAD_PATH.last.size + 1..-1]
 end
 require File.join(File.dirname(__FILE__), '..', 'init.rb')

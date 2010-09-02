@@ -1,5 +1,5 @@
-module Caboose #:nodoc:
-  module Acts #:nodoc:
+module ActiveRecord # :nodoc:
+  module DynamicScope # :nodoc:
     # Overrides some basic methods for the current model so that calling #destroy sets a 'deleted_at' field to the current timestamp.
     # This assumes the table has a deleted_at date/time field.  Most normal model operations will work, but there will be some oddities.
     #

@@ -1,5 +1,5 @@
-module Caboose # :nodoc:
-  module Acts # :nodoc:
+module ActiveRecord # :nodoc:
+  module DynamicScope # :nodoc:
     class HasManyThroughWithoutDeletedAssociation < ActiveRecord::Associations::HasManyThroughAssociation
       protected
         def construct_conditions

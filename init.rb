@@ -1,16 +1,16 @@
 class << ActiveRecord::Base
-  def has_many_without_deleted(association_id, options = {}, &extension)
-    returning has_many_with_deleted(association_id, options, &extension) do
+  def has_many_without_dynamic_scope(association_id, options = {}, &extension)
+    returning has_many_with_dynamic_scope(association_id, options, &extension) do
       if options[:through]
         reflection = reflect_on_association(association_id)
-        collection_reader_method(reflection, Caboose::Acts::HasManyThroughWithoutDeletedAssociation)
-        collection_accessor_methods(reflection, Caboose::Acts::HasManyThroughWithoutDeletedAssociation, false)
+        collection_reader_method(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDeletedAssociation)
+        collection_accessor_methods(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDeletedAssociation, false)
       end
     end
   end
   
-  alias_method :has_many_with_deleted, :has_many
-  alias_method :has_many, :has_many_without_deleted
+  alias_method :has_many_with_dynamic_scope, :has_many
+  alias_method :has_many, :has_many_without_dynamic_scope
 end
 
-ActiveRecord::Base.send :include, Caboose::Acts::Paranoid
+ActiveRecord::Base.send :include, ActiveRecord::DynamicScope::Paranoid
