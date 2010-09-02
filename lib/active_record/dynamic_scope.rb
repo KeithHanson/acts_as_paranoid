@@ -6,7 +6,12 @@ module ActiveRecord # :nodoc:
       end
 
       module ClassMethods
-        def dynamic_scope(scope=nil)
+        def dynamic_scope(scope=nil, &block)
+          if block_given?
+            raise "Extra parameter" unless scope.nil?
+            scope = Proc.new
+          end
+          
           unless dynamic_scoped? # don't let AR call this twice
             include InstanceMethods
             cattr_accessor :dynascope
@@ -47,7 +52,14 @@ module ActiveRecord # :nodoc:
             end
 
             def with_dynascope(&block)
-              with_scope({:find => dynascope }, :merge, &block)
+              d = dynascope
+              d = d.call if d.respond_to?(:call)
+              
+              if d
+                with_scope({:find => d }, :merge, &block)
+              else
+                yield
+              end
             end
 
           private
