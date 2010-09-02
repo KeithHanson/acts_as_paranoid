@@ -1,4 +1,5 @@
 require File.join(File.dirname(__FILE__), 'test_helper')
+require File.join(File.dirname(__FILE__), 'schema/paranoid')
 
 class Widget < ActiveRecord::Base
   include Paranoia

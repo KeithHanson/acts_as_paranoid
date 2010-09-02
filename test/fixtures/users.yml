@@ -1,0 +1,11 @@
+one:
+  id: 1
+  name: one
+  
+friend:
+  id: 2
+  name: friend
+  
+other:
+  id: 3
+  name: other

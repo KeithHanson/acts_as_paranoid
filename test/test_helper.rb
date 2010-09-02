@@ -24,8 +24,6 @@ ActiveRecord::Base.configurations.update(config)
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
 ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'sqlite3'])
 
-load(File.dirname(__FILE__) + "/schema.rb")
-
 $LOAD_PATH.unshift(File.dirname(__FILE__) + "/fixtures/")
 
 class ActiveSupport::TestCase
