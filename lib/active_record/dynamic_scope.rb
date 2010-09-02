@@ -1,51 +1,5 @@
 module ActiveRecord # :nodoc:
   module DynamicScope # :nodoc:
-    # Overrides some basic methods for the current model so that calling #destroy sets a 'deleted_at' field to the current timestamp.
-    # This assumes the table has a deleted_at date/time field.  Most normal model operations will work, but there will be some oddities.
-    #
-    #   class Widget < ActiveRecord::Base
-    #     dynamic_scope
-    #   end
-    #
-    #   Widget.find(:all)
-    #   # SELECT * FROM widgets WHERE widgets.deleted_at IS NULL
-    #
-    #   Widget.find(:first, :conditions => ['title = ?', 'test'], :order => 'title')
-    #   # SELECT * FROM widgets WHERE widgets.deleted_at IS NULL AND title = 'test' ORDER BY title LIMIT 1
-    #
-    #   Widget.find_with_deleted(:all)
-    #   # SELECT * FROM widgets
-    #
-    #   Widget.find_only_deleted(:all)
-    #   # SELECT * FROM widgets WHERE widgets.deleted_at IS NOT NULL
-    #
-    #   Widget.find_with_deleted(1).deleted?
-    #   # Returns true if the record was previously destroyed, false if not 
-    #
-    #   Widget.count
-    #   # SELECT COUNT(*) FROM widgets WHERE widgets.deleted_at IS NULL
-    #
-    #   Widget.count ['title = ?', 'test']
-    #   # SELECT COUNT(*) FROM widgets WHERE widgets.deleted_at IS NULL AND title = 'test'
-    #
-    #   Widget.count_with_deleted
-    #   # SELECT COUNT(*) FROM widgets
-    #
-    #   Widget.count_only_deleted
-    #   # SELECT COUNT(*) FROM widgets WHERE widgets.deleted_at IS NOT NULL
-    #
-    #   Widget.delete_all
-    #   # UPDATE widgets SET deleted_at = '2005-09-17 17:46:36'
-    #
-    #   Widget.delete_all!
-    #   # DELETE FROM widgets
-    #
-    #   @widget.destroy
-    #   # UPDATE widgets SET deleted_at = '2005-09-17 17:46:36' WHERE id = 1
-    #
-    #   @widget.destroy!
-    #   # DELETE FROM widgets WHERE id = 1
-    # 
     module Paranoid
       def self.included(base) # :nodoc:
         base.extend ClassMethods
@@ -77,9 +31,11 @@ module ActiveRecord # :nodoc:
             with_dynascope { super }
           end
 
-          def count(*args)
-            with_dynascope { super }
-          end
+          # Apparently count calls calculate
+          #
+          # def count(*args)
+          #   super
+          # end
 
           def calculate(*args)
             with_dynascope { super }

@@ -61,14 +61,6 @@ class ParanoidTest < ActiveSupport::TestCase
     assert_equal 0, Category.count
   end
   
-  def test_should_destroy
-    assert_equal 1, Widget.count
-    assert_equal 1, Category.count
-    widgets(:widget_1).destroy!
-    assert_equal 0, Widget.count
-    assert_equal 0, Category.count
-  end
-  
   def test_should_delete_all
     assert_equal 1, Widget.count
     assert_equal 1, Category.count

@@ -16,8 +16,4 @@ module ActiveRecord::Base::Paranoia
     end
     freeze
   end
-
-  def destroy!
-    transaction { destroy_with_callbacks }
-  end
 end
