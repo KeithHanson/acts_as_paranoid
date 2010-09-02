@@ -1,7 +1,32 @@
 require File.join(File.dirname(__FILE__), 'test_helper')
 
+module Paranoia
+  def self.included(klass)
+    klass.dynamic_scope :conditions => ["#{klass.table_name}.deleted_at IS NULL"]
+    klass.extend ClassMethods
+  end
+  
+  module ClassMethods
+    def delete_all(conditions = nil)
+      update_all ["deleted_at = ?", current_time], conditions
+    end
+  end
+
+  def destroy_without_callbacks
+    unless new_record?
+      self.class.update_all self.class.send(:sanitize_sql, ["deleted_at = ?", (self.deleted_at = self.class.send(:current_time))]), ["#{self.class.primary_key} = ?", id]
+    end
+    freeze
+  end
+
+  def destroy!
+    transaction { destroy_with_callbacks }
+  end
+end
+
 class Widget < ActiveRecord::Base
-  dynamic_scope
+  include Paranoia
+  
   has_many :categories, :dependent => :destroy
   has_and_belongs_to_many :habtm_categories, :class_name => 'Category'
   has_one :category
@@ -12,9 +37,10 @@ class Widget < ActiveRecord::Base
 end
 
 class Category < ActiveRecord::Base
+  include Paranoia
+  
   belongs_to :widget
   belongs_to :any_widget, :class_name => 'Widget', :foreign_key => 'widget_id'
-  dynamic_scope
 
   def self.search(name, options = {})
     find :all, options.merge(:conditions => ['LOWER(title) LIKE ?', "%#{name.to_s.downcase}%"])
@@ -27,9 +53,10 @@ class Tag < ActiveRecord::Base
 end
 
 class Tagging < ActiveRecord::Base
+  include Paranoia
+  
   belongs_to :tag
   belongs_to :widget
-  dynamic_scope
 end
 
 class NonParanoidAndroid < ActiveRecord::Base
@@ -154,8 +181,8 @@ class ParanoidTest < ActiveSupport::TestCase
   end
 
   def test_should_give_paranoid_status
-    assert Widget.dynamic_scoped?
-    assert !NonParanoidAndroid.dynamic_scoped?
+    assert_equal({:conditions=>["widgets.deleted_at IS NULL"]}, Widget.dynamic_scope)
+    assert NonParanoidAndroid.dynamic_scope.nil?
   end
 
   def test_dynamic_finders

@@ -9,8 +9,10 @@ module Caboose # :nodoc:
             "#{table_name}.#{attr} = #{value}"
           end
 
-          conditions << @reflection.through_reflection.klass.send(:dynascope)[:conditions]
+          dynascope = @reflection.through_reflection.klass.send(:dynascope)
+          conditions << dynascope[:conditions] if dynascope
           conditions << sql_conditions if sql_conditions
+
           "(" + conditions.join(') AND (') + ")"
         end
     end

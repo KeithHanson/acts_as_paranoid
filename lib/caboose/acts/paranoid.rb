@@ -52,13 +52,14 @@ module Caboose #:nodoc:
       end
 
       module ClassMethods
-        def dynamic_scope(options = {})
+        def dynamic_scope(scope=nil)
           unless dynamic_scoped? # don't let AR call this twice
-            cattr_accessor :deleted_attribute
-            self.deleted_attribute = options[:with] || :deleted_at
-            alias_method :destroy_without_callbacks!, :destroy_without_callbacks
+            include InstanceMethods
+            cattr_accessor :dynascope
           end
-          include InstanceMethods
+
+          return self.dynascope if scope.nil?
+          self.dynascope = scope
         end
 
         def dynamic_scoped?
@@ -84,19 +85,11 @@ module Caboose #:nodoc:
             with_dynascope { super }
           end
 
-          def delete_all(conditions = nil)
-            self.update_all ["#{self.deleted_attribute} = ?", current_time], conditions
-          end
-
           protected
             def current_time
               default_timezone == :utc ? Time.now.to_date.utc : Time.now.to_date
             end
 
-            def dynascope
-              { :conditions => ["#{table_name}.#{deleted_attribute} IS NULL"] }
-            end
-            
             def with_dynascope(&block)
               with_scope({:find => dynascope }, :merge, &block)
             end
@@ -106,24 +99,6 @@ module Caboose #:nodoc:
             def find_every(options)
               with_dynascope { super }
             end
-        end
-
-        def destroy_without_callbacks
-          unless new_record?
-            self.class.update_all self.class.send(:sanitize_sql, ["#{self.class.deleted_attribute} = ?", (self.deleted_at = self.class.send(:current_time))]), ["#{self.class.primary_key} = ?", id]
-          end
-          freeze
-        end
-
-        def destroy_with_callbacks!
-          return false if callback(:before_destroy) == false
-          result = destroy_without_callbacks!
-          callback(:after_destroy)
-          result
-        end
-
-        def destroy!
-          transaction { destroy_with_callbacks! }
         end
       end
     end
