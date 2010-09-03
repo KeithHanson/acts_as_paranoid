@@ -1,6 +1,8 @@
 sqlite3:
   :adapter: sqlite3
   :database: ":memory:"
+  # :database: "test.sqlite3"
+  
 postgresql:
   :adapter: postgresql
   :username: postgres

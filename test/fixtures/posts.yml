@@ -1,17 +1,25 @@
 private:
-  id: 1
-  text: Post 1
-  user_id: 1
+  text: private
+  owner_id: 1
   privacy: private
 
 friends:
-  id: 2
-  text: Post 2 for friends
-  user_id: 1
+  text: friends post
+  owner_id: 1
   privacy: friends
    
+protected:
+  text: protected post
+  owner_id: 1
+  privacy: protected
+
+#
 public:
-  id: 3
-  text: Post 2 for the public
-  user_id: 1
+  text: public post
+  owner_id: 1
   privacy: public
+
+world:
+  text: world post
+  owner_id: 1
+  privacy: world

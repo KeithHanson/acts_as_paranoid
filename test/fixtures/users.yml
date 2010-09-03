@@ -5,7 +5,11 @@ one:
 friend:
   id: 2
   name: friend
+
+follower:
+  id: 3
+  name: follower
   
 other:
-  id: 3
+  id: 4
   name: other
