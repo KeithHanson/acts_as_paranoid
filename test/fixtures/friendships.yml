@@ -5,3 +5,12 @@ one:
 one_r:
   user_id: 2
   friend_id: 1
+
+two:
+  user_id: 2
+  friend_id: 5
+
+two_r:
+  user_id: 5
+  friend_id: 2
+

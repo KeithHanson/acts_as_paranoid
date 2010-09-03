@@ -160,7 +160,7 @@ class AclTest < ActiveSupport::TestCase
   
   def test_fixtures
     assert_equal [users(:friend)], users(:one).friends
-    assert_equal [users(:one)], users(:friend).friends
+    assert_equal [users(:one), users(:friend_of_friend)], users(:friend).friends
     assert_equal [], users(:other).friends
     assert_equal [users(:follower)], users(:one).followers
     assert_equal [users(:one)], users(:follower).leaders

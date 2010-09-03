@@ -13,3 +13,8 @@ follower:
 other:
   id: 4
   name: other
+
+friend_of_friend:
+  id: 5
+  name: friend_of_friend
+
