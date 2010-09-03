@@ -1,33 +1,51 @@
 require File.join(File.dirname(__FILE__), 'test_helper')
 
-module Acl
-  def self.sudo(user)
-    old = @current_user
-    @current_user = user
+#
+# A simple ACL example.
+#
+# This module implements the following ACL strategy:
+#
+# An object with an owner_id attribute is owned by the specified owner (which
+# is a User object). These objects support an optional privacy attribute, which
+# might be one of "public", "private", "friends", "followers", "world"; 
+# if the object does not support a "privacy" attribute this defaults to "private".
+#
+# Such objects can be read:
+#
+# - from the owner, when "private"
+# - from the owner and his friends, when "friends"
+# - from the owner, his friends, and his followers, when "protected"
+# - from any User, when "public"
+# - from any User and the "nil" special user, when "world"
+#
 
+#
+# Thread local storage:
+#
+# Current.user(new_user) do 
+#   Current.user # new_user
+# end
+
+module Current
+  def self.method_missing(key, *args, &block)
+    if args.length == 0 && !block_given?
+      Thread.current[name]
+    elsif args.length == 1 && block_given?
+      exec_with_setting(key, args.first, &block)
+    else
+      super
+    end
+  end
+
+  def self.exec_with_setting(key, value)
+    old = Thread.current[name]
+    Thread.current[name] = value
     yield
   ensure
-    @current_user = old
-  end
-  
-  def self.current_user
-    @current_user
+    Thread.current[name] = old
   end
 end
 
-class Friendship < ActiveRecord::Base
-  belongs_to :user
-  belongs_to :friend, :class_name => "User"
-end
-
-class User < ActiveRecord::Base
-  has_many :friendships, :dependent => :destroy
-  has_many :friends, :through => :friendships, :class_name => 'User'
-
-  has_many :posts
-end
-
-      
 class ActiveRecord::Base
   def self.merge_or_conditions(*conditions)
     segments = []
@@ -43,15 +61,27 @@ class ActiveRecord::Base
   end
 end
 
+class Friendship < ActiveRecord::Base
+  belongs_to :user
+  belongs_to :friend, :class_name => "User"
+end
+
+class User < ActiveRecord::Base
+  has_many :friendships, :dependent => :destroy
+  has_many :friends, :through => :friendships, :class_name => 'User'
+
+  has_many :posts
+end
+
 class Post < ActiveRecord::Base
   belongs_to :user
 
   dynamic_scope do
     conditions = []
-    if Acl.current_user
-      conditions.push [ "user_id=?", Acl.current_user ]
+    if Current.user
+      conditions.push [ "user_id=?", Current.user ]
       conditions.push [ 
-        "posts.privacy='friends' AND user_id IN (SELECT friend_id FROM friendships WHERE user_id=?)", Acl.current_user ]
+        "posts.privacy='friends' AND user_id IN (SELECT friend_id FROM friendships WHERE user_id=?)", Current.user ]
     end
     
     conditions.push "posts.privacy='public'"
@@ -76,19 +106,19 @@ class AclTest < ActiveSupport::TestCase
   end
   
   def test_on_base_class_for_other
-    Acl.sudo users(:other) do
+    Current.user(users(:other)) do
       assert_equal [3], Post.all.ids
     end
   end
   
   def test_on_base_class_for_friend
-    Acl.sudo users(:friend) do
+    Current.user(users(:friend)) do
       assert_equal [2,3], Post.all.ids
     end
   end
   
   def test_on_base_class_for_me
-    Acl.sudo users(:one) do
+    Current.user(users(:one)) do
       assert_equal [1,2,3], Post.all.ids
     end
   end
