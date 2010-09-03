@@ -23,7 +23,6 @@ require File.join(File.dirname(__FILE__), 'test_helper')
 # Create access is granted to everyone but the "nil" special user.
 #
 
-
 module Current
   def self.method_missing(key, *args, &block)
     if args.length == 0 && !block_given?
@@ -49,76 +48,61 @@ module Acl
     klass.column_names.include?("owner_id")
   end
 
-  def self.privacy?(klass)
-    acl?(klass) && klass.column_names.include?("privacy")
-  end
-
-  def self.for_owner(klass)
-    return unless acl?(klass)
-    return false unless Current.user
-
+  # grant read access
+  #
+  # - to the owner, when "private"
+  # - to the owner and his friends, when "friends"
+  # - to the owner, his friends, and his followers, when "protected"
+  # - to any User, when "public"
+  # - to any User and the "nil" special user, when "world"
+  #
+  def self.conditions_for(access, klass)
     t = klass.table_name
-    [ "#{t}.owner_id=?", Current.user ]
+    u = Current.user 
+    conditions = []
+
+    if u
+      conditions << [ "#{t}.owner_id=?", u ]
+    else
+      conditions << [ "0" ]
+    end
+
+    return if access != :read
+    return unless klass.column_names.include?("privacy")
+
+    if u
+
+      sql = <<-SQL
+  (#{t}.privacy IN ('friends', 'protected') AND #{t}.owner_id IN (SELECT friend_id FROM friendships WHERE friendships.user_id=?)) OR
+  (#{t}.privacy='protected' AND #{t}.owner_id IN (SELECT leader_id FROM followships WHERE followships.follower_id=?)) OR
+  (#{t}.privacy='public')
+SQL
+
+      conditions.push [ sql, u, u ]
+    end
+
+    conditions.push [ "#{t}.privacy='world'" ]
+    conditions
   end
   
-  def self.for_friends(klass)
-    return unless privacy?(klass)
-    return unless Current.user
-    
-    t = klass.table_name
-    [ 
-      "#{t}.privacy IN (?) AND #{t}.owner_id IN (SELECT friend_id FROM friendships WHERE friendships.user_id=?)", 
-      %w(friends protected), 
-      Current.user 
-    ]
+  def self.validate(rec) 
+    if rec.new_record?
+      rec.owner = Current.user
+    elsif !rec.klass.first(:access => :update, :conditions => { :id => rec.id })
+      rec.errors.add_to_base "You are not allowed to update this record."
+    end
   end
-
-  def self.for_followers(klass)
-    return unless privacy?(klass)
-    return unless Current.user
-    
-    t = klass.table_name
-    [ 
-      "#{t}.privacy IN (?) AND #{t}.owner_id IN (SELECT follower_id FROM followships WHERE followships.leader_id=?)", 
-      %w(protected), 
-      Current.user 
-    ]
-  end
-
-  def self.for_public(klass)
-    return unless privacy?(klass)
-    return unless Current.user
-    
-    t = klass.table_name
-    [ "#{t}.privacy='public'" ]
-  end
-
-  def self.for_world(klass)
-    return unless privacy?(klass)
-    
-    t = klass.table_name
-    [ "#{t}.privacy='world'" ]
-  end
-
+  
   def self.included(klass)
-    klass.dynamic_scope do
+    klass.validate { |rec| validate(rec) }
+    klass.validates_presence_of :owner_id
+    
+    klass.dynamic_scope do |access|
+      next nil unless acl?(klass)
+
       next nil if Current.user == :root
 
-      conditions = []
-
-      access = :read
-
-      # grant read access
-      #
-      # - to the owner, when "private"
-      # - to the owner and his friends, when "friends"
-      # - to the owner, his friends, and his followers, when "protected"
-      # - to any User, when "public"
-      # - to any User and the "nil" special user, when "world"
-      #
-      
-      conditions << for_owner(klass) << for_friends(klass) << for_followers(klass) << 
-        for_public(klass) << for_world(klass)
+      conditions = conditions_for(access, klass)
 
       #
       # merge conditions
@@ -176,19 +160,13 @@ class AclTest < ActiveSupport::TestCase
 
   POST_NAMES = [ :private, :friends, :protected, :public, :world ]
 
-  def setup
-    setup_post_ids
-  end
-  
-  def setup_post_ids
-    Current.user(:root) do
+  def post_ids(*syms)
+    @post_ids ||= Current.user(:root) do
       @post_ids = POST_NAMES.inject({}) do |hash, name|
         hash.update(name => posts(name).id)
       end
     end
-  end
 
-  def post_ids(*syms)
     syms.map { |sym| @post_ids.fetch(sym) }
   end
   
@@ -212,6 +190,8 @@ class AclTest < ActiveSupport::TestCase
     end
   end
   
+  # -- basic visibility -------------------------------------------------------
+  
   def test_on_base_class_for_guest
     Current.user(nil) do
       assert_user_sees :world
@@ -230,6 +210,13 @@ class AclTest < ActiveSupport::TestCase
     Current.user(users(:friend)) do
       assert_user_sees :world, :public, :protected, :friends
       assert_user_cannot_see :private
+    end
+  end
+  
+  def test_on_base_class_for_follower
+    Current.user(users(:follower)) do
+      assert_user_sees :world, :public, :protected
+      assert_user_cannot_see :private, :friends
     end
   end
   
