@@ -13,4 +13,4 @@ class << ActiveRecord::Base
   alias_method :has_many, :has_many_without_dynamic_scope
 end
 
-ActiveRecord::Base.send :include, ActiveRecord::DynamicScope::Paranoid
+ActiveRecord::Base.send :include, ActiveRecord::DynamicScope

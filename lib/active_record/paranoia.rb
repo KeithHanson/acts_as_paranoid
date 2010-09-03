@@ -6,13 +6,13 @@ module ActiveRecord::Base::Paranoia
   
   module ClassMethods
     def delete_all(conditions = nil)
-      update_all ["deleted_at = ?", current_time], conditions
+      update_all ["deleted_at = ?", Time.now], conditions
     end
   end
 
   def destroy_without_callbacks
     unless new_record?
-      self.class.update_all self.class.send(:sanitize_sql, ["deleted_at = ?", (self.deleted_at = self.class.send(:current_time))]), ["#{self.class.primary_key} = ?", id]
+      self.class.update_all self.class.send(:sanitize_sql, ["deleted_at = ?", Time.now]), ["#{self.class.primary_key} = ?", id]
     end
     freeze
   end
