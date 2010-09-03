@@ -21,13 +21,24 @@ module ActiveRecord::DynamicScope # :nodoc:
   module ClassMethods
     # count etc. ends up here
     def calculate(*args)
-      with_dynascope { super }
+      opts = args.extract_options!
+      with_dynascope(opts) { 
+        args.push opts
+        super 
+      }
+    end
+
+    def validate_find_options(options) #:nodoc:
+      options = options.dup
+      options.delete :access
+      super
     end
 
     protected
-    def with_dynascope(&block)
+    def with_dynascope(opts, &block)
+      access = opts.delete(:access) || :read
       d = dynascope
-      d = d.call if d.respond_to?(:call)
+      d = d.call(access) if d.respond_to?(:call)
       
       if d
         with_scope({:find => d }, :merge, &block)
@@ -39,7 +50,9 @@ module ActiveRecord::DynamicScope # :nodoc:
     private
     # all find calls lead here
     def find_every(opts)
-      with_dynascope { super }
+      with_dynascope(opts) { 
+        super(opts) 
+      }
     end
     
   end

@@ -60,7 +60,7 @@ module Acl
   # - to any User, when "public"
   # - to any User and the "nil" special user, when "world"
   #
-  def self.conditions_for(klass)
+  def self.conditions_for(access, klass)
     t = klass.table_name
     u = Thread.current.user 
     conditions = []
@@ -70,8 +70,6 @@ module Acl
     else
       conditions << [ "0" ]
     end
-
-    access = Thread.current.acl_access || :read
 
     return conditions if access != :read
     return unless klass.column_names.include?("privacy")
@@ -98,10 +96,8 @@ SQL
       return
     end
     
-    Thread.current.acl_access(:update) do
-      if !rec.class.find_by_id(rec.id)
-        rec.errors.add_to_base "You are not allowed to update this record."
-      end
+    if !rec.class.find_by_id(rec.id, :access => :update)
+      rec.errors.add_to_base "You are not allowed to update this record."
     end
   end
   
@@ -110,11 +106,11 @@ SQL
     klass.validates_presence_of :owner_id
     klass.validates_inclusion_of :privacy, :in => %w(private protected friends public world)
     
-    klass.dynamic_scope do
+    klass.dynamic_scope do |access|
       next nil if Thread.current.user == :root
       next nil unless acl?(klass)
 
-      conditions = conditions_for(klass)
+      conditions = conditions_for(access, klass)
       
       next nil unless conditions
       
