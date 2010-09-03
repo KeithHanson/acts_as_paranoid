@@ -1,5 +1,4 @@
 require File.join(File.dirname(__FILE__), 'test_helper')
-require File.join(File.dirname(__FILE__), 'schema/acl')
 
 module Acl
   def self.sudo(user)
@@ -73,6 +72,7 @@ class AclTest < ActiveSupport::TestCase
   
   def test_on_base_class_for_guest
     assert_equal [3], Post.all.ids
+    assert_raises(ActiveRecord::RecordNotFound) { Post.find(1).nil? }
   end
   
   def test_on_base_class_for_other

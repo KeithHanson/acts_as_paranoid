@@ -24,6 +24,11 @@ ActiveRecord::Base.configurations.update(config)
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
 ActiveRecord::Base.establish_connection(config[ENV['DB'] || 'sqlite3'])
 
+silence_stream(STDOUT) do
+  require File.join(File.dirname(__FILE__), 'schema/acl')
+  require File.join(File.dirname(__FILE__), 'schema/paranoid')
+end
+
 $LOAD_PATH.unshift(File.dirname(__FILE__) + "/fixtures/")
 
 class ActiveSupport::TestCase
