@@ -23,24 +23,28 @@ require File.join(File.dirname(__FILE__), 'test_helper')
 # Create access is granted to everyone but the "nil" special user.
 #
 
-module Current
-  def self.method_missing(key, *args, &block)
-    if args.length == 0 && !block_given?
-      Thread.current[key]
-    elsif args.length == 1 && block_given?
-      exec_with_setting(key, args.first, &block)
-    else
-      super
+class Thread
+  module TLS
+    def method_missing(key, *args, &block)
+      if args.length == 0 && !block_given?
+        self[key]
+      elsif args.length == 1 && block_given?
+        exec_with_setting(key, args.first, &block)
+      else
+        super
+      end
+    end
+
+    def exec_with_setting(key, value)
+      old = self[key]
+      self[key] = value
+      yield
+    ensure
+      self[key] = old
     end
   end
-
-  def self.exec_with_setting(key, value)
-    old = Thread.current[key]
-    Thread.current[key] = value
-    yield
-  ensure
-    Thread.current[key] = old
-  end
+  
+  include TLS
 end
 
 module Acl
@@ -56,9 +60,9 @@ module Acl
   # - to any User, when "public"
   # - to any User and the "nil" special user, when "world"
   #
-  def self.conditions_for(access, klass)
+  def self.conditions_for(klass)
     t = klass.table_name
-    u = Current.user 
+    u = Thread.current.user 
     conditions = []
 
     if u
@@ -67,7 +71,9 @@ module Acl
       conditions << [ "0" ]
     end
 
-    return if access != :read
+    access = Thread.current.acl_access || :read
+
+    return conditions if access != :read
     return unless klass.column_names.include?("privacy")
 
     if u
@@ -87,30 +93,38 @@ SQL
   
   def self.validate(rec) 
     if rec.new_record?
-      rec.owner = Current.user
-    elsif !rec.klass.first(:access => :update, :conditions => { :id => rec.id })
-      rec.errors.add_to_base "You are not allowed to update this record."
+      rec.owner = Thread.current.user
+      rec.privacy ||= "private"
+      return
+    end
+    
+    Thread.current.acl_access(:update) do
+      if !rec.class.find_by_id(rec.id)
+        rec.errors.add_to_base "You are not allowed to update this record."
+      end
     end
   end
   
   def self.included(klass)
     klass.validate { |rec| validate(rec) }
     klass.validates_presence_of :owner_id
+    klass.validates_inclusion_of :privacy, :in => %w(private protected friends public world)
     
-    klass.dynamic_scope do |access|
+    klass.dynamic_scope do
+      next nil if Thread.current.user == :root
       next nil unless acl?(klass)
 
-      next nil if Current.user == :root
+      conditions = conditions_for(klass)
+      
+      next nil unless conditions
+      
+      conditions = "(" + 
+        conditions.
+          map { |condition| klass.send(:sanitize_sql, condition) }.
+          compact.
+          join(') OR (') +
+        ")"
 
-      conditions = conditions_for(access, klass)
-
-      #
-      # merge conditions
-      segments = conditions.map do |condition|
-        klass.send(:sanitize_sql, condition)
-      end.compact
-
-      conditions = "(#{segments.join(') OR (')})" 
       { :conditions => conditions }
     end
   end
@@ -140,11 +154,9 @@ class User < ActiveRecord::Base
 end
 
 class Post < ActiveRecord::Base
-  belongs_to :owner
+  belongs_to :owner, :class_name => "User"
 
   include Acl
-
-  validates_inclusion_of :privacy, :in => %w(private friends public)
 end
 
 class AclTest < ActiveSupport::TestCase
@@ -161,7 +173,7 @@ class AclTest < ActiveSupport::TestCase
   POST_NAMES = [ :private, :friends, :protected, :public, :world ]
 
   def post_ids(*syms)
-    @post_ids ||= Current.user(:root) do
+    @post_ids ||= Thread.current.user(:root) do
       @post_ids = POST_NAMES.inject({}) do |hash, name|
         hash.update(name => posts(name).id)
       end
@@ -193,37 +205,77 @@ class AclTest < ActiveSupport::TestCase
   # -- basic visibility -------------------------------------------------------
   
   def test_on_base_class_for_guest
-    Current.user(nil) do
+    Thread.current.user(nil) do
       assert_user_sees :world
       assert_user_cannot_see :public, :protected, :friends, :private
     end
   end
   
   def test_on_base_class_for_other
-    Current.user(users(:other)) do
+    Thread.current.user(users(:other)) do
       assert_user_sees :public, :world
       assert_user_cannot_see :protected, :friends, :private
     end
   end
   
   def test_on_base_class_for_friend
-    Current.user(users(:friend)) do
+    Thread.current.user(users(:friend)) do
       assert_user_sees :world, :public, :protected, :friends
       assert_user_cannot_see :private
     end
   end
   
   def test_on_base_class_for_follower
-    Current.user(users(:follower)) do
+    Thread.current.user(users(:follower)) do
       assert_user_sees :world, :public, :protected
       assert_user_cannot_see :private, :friends
     end
   end
   
   def test_on_base_class_for_me
-    Current.user(users(:one)) do
+    Thread.current.user(users(:one)) do
       assert_user_sees :world, :public, :protected, :friends, :private
       assert_user_cannot_see
+    end
+  end
+
+  # -- creation
+  def test_create_post
+    assert_raise(ActiveRecord::RecordInvalid) { Post.create!(:text => "wha") }
+
+    # create a private post
+    p = nil
+    Thread.current.user(users(:one)) do
+      p = Post.create!(:text => "wha")
+      assert p
+      assert_equal p.reload.owner, users(:one)
+    end
+    
+    assert_raise(ActiveRecord::RecordNotFound) { p.reload }
+
+    # create a world post
+    p = nil
+    Thread.current.user(users(:one)) do
+      p = Post.create!(:text => "wha", :privacy => "world")
+      assert p
+      assert_equal p.reload.owner, users(:one)
+    end
+    
+    p1 = Post.find(p.id)
+    assert_equal(p, p1)
+  end
+  
+  def test_update_post
+    Thread.current.user(users(:one)) do
+      p = posts(:friends)
+      p.update_attributes! :text => "fix"
+    end
+
+    Thread.current.user(users(:friend)) do
+      p = posts(:friends)
+      assert_raise(ActiveRecord::RecordInvalid) {
+        p.update_attributes! :text => "updated"
+      }
     end
   end
 end
