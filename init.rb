@@ -3,8 +3,8 @@ class << ActiveRecord::Base
     returning has_many_with_dynamic_scope(association_id, options, &extension) do
       if options[:through]
         reflection = reflect_on_association(association_id)
-        collection_reader_method(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDeletedAssociation)
-        collection_accessor_methods(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDeletedAssociation, false)
+        collection_reader_method(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDynamicScope)
+        collection_accessor_methods(reflection, ActiveRecord::DynamicScope::HasManyThroughWithoutDynamicScope, false)
       end
     end
   end

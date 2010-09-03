@@ -1,6 +1,6 @@
 module ActiveRecord # :nodoc:
   module DynamicScope # :nodoc:
-    class HasManyThroughWithoutDeletedAssociation < ActiveRecord::Associations::HasManyThroughAssociation
+    class HasManyThroughWithoutDynamicScope < ActiveRecord::Associations::HasManyThroughAssociation
       protected
         def construct_conditions
           return super unless @reflection.through_reflection.klass.dynamic_scoped?
