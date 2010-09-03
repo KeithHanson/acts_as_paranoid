@@ -26,7 +26,7 @@ require File.join(File.dirname(__FILE__), 'test_helper')
 module Current
   def self.method_missing(key, *args, &block)
     if args.length == 0 && !block_given?
-      Thread.current[name]
+      Thread.current[key]
     elsif args.length == 1 && block_given?
       exec_with_setting(key, args.first, &block)
     else
@@ -35,11 +35,11 @@ module Current
   end
 
   def self.exec_with_setting(key, value)
-    old = Thread.current[name]
-    Thread.current[name] = value
+    old = Thread.current[key]
+    Thread.current[key] = value
     yield
   ensure
-    Thread.current[name] = old
+    Thread.current[key] = old
   end
 end
 
