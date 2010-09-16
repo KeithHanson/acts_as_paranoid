@@ -1,4 +1,4 @@
-module ActiveRecord::Base::Paranoia
+module ActiveRecord::Paranoia
   def self.included(klass)
     klass.dynamic_scope :conditions => ["#{klass.table_name}.deleted_at IS NULL"]
     klass.extend ClassMethods
