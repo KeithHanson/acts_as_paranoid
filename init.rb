@@ -1,3 +1,5 @@
+require 'active_record/dynamic_scope/has_many_through_without_deleted_association.rb'
+
 class << ActiveRecord::Base
   def has_many_without_dynamic_scope(association_id, options = {}, &extension)
     returning has_many_with_dynamic_scope(association_id, options, &extension) do
